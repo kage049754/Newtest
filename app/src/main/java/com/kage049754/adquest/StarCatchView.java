@@ -24,6 +24,9 @@ public class StarCatchView extends View {
     private final ArrayList<FallingObject> objects = new ArrayList<>();
     private final Random random = new Random();
     private final RoundListener listener;
+    private final Soundscape soundscape;
+    private int displayedStage = 1;
+    private long stageBannerUntil;
     private final float density;
     private long startTime, lastSpawn, lastFrame, pauseStartedAt, pausedTotal;
     private int score, lastScore, coinBoost;
@@ -32,9 +35,10 @@ public class StarCatchView extends View {
     private boolean invulnerable;
     private long invulnerableUntil;
 
-    public StarCatchView(Context context, RoundListener listener) {
+    public StarCatchView(Context context, RoundListener listener, Soundscape soundscape) {
         super(context);
         this.listener = listener;
+        this.soundscape = soundscape;
         density = getResources().getDisplayMetrics().density;
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
@@ -48,6 +52,8 @@ public class StarCatchView extends View {
         objects.clear();
         score = 0;
         elapsedSeconds = 0;
+        displayedStage = 1;
+        stageBannerUntil = 0;
         hitHazard = false;
         shieldAvailable = shieldOwned;
         invulnerable = false;
@@ -107,8 +113,14 @@ public class StarCatchView extends View {
         float delta = Math.min(0.04f, Math.max(0f, (now - lastFrame) / 1000f));
         lastFrame = now;
         elapsedSeconds = (now - startTime) / 1000f;
-        float difficulty = Math.min(2.8f, 1f + elapsedSeconds / 24f);
-        long spawnInterval = Math.max(210, 650 - (long)(elapsedSeconds * 7));
+        int stage = 1 + (int)(elapsedSeconds / 60f);
+        if (stage > displayedStage) {
+            displayedStage = stage;
+            stageBannerUntil = now + 2200;
+            if (soundscape != null) soundscape.stage();
+        }
+        float difficulty = Math.min(4.2f, 1f + elapsedSeconds / 38f);
+        long spawnInterval = Math.max(235, 650 - (long)(elapsedSeconds * 2.1f));
         if (now - lastSpawn >= spawnInterval) {
             boolean orb = random.nextFloat() < Math.max(0.28f, 0.43f - elapsedSeconds / 180f);
             float radius = (orb ? 10f : 13f + random.nextInt(6)) * density;
@@ -142,10 +154,12 @@ public class StarCatchView extends View {
             if (dx * dx + dy * dy < collisionDistance * collisionDistance) {
                 if (object.orb) {
                     score += 10 * (1 + coinBoost);
+                    if (soundscape != null) soundscape.collect();
                     iterator.remove();
                     continue;
                 } else if (shieldAvailable) {
                     shieldAvailable = false;
+                    if (soundscape != null) soundscape.shield();
                     invulnerable = true;
                     invulnerableUntil = now + 1300;
                     iterator.remove();
@@ -155,6 +169,7 @@ public class StarCatchView extends View {
                     continue;
                 } else {
                     hitHazard = true;
+                    if (soundscape != null) soundscape.hit();
                     finishRun();
                     return;
                 }
@@ -173,15 +188,21 @@ public class StarCatchView extends View {
         paint.setTextSize(15 * density);
         canvas.drawText("ENERGY " + score, 12 * density, 25 * density, paint);
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("TIME " + Math.min(45, (int) elapsedSeconds) + "/45", w - 12 * density, 25 * density, paint);
+        int totalSeconds = (int) elapsedSeconds;
+        String timeText = String.format(java.util.Locale.US, "%02d:%02d", totalSeconds / 60, totalSeconds % 60);
+        canvas.drawText("STAGE " + displayedStage + "  •  " + timeText, w - 12 * density, 25 * density, paint);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setTextSize(11 * density);
         paint.setColor(shieldAvailable ? 0xFFB9FFFC : 0xFF6C819A);
         canvas.drawText(shieldAvailable ? "SHIELD READY" : "DODGE!", w / 2f, h - 15 * density, paint);
 
-        if (elapsedSeconds >= 45f) {
-            finishRun();
-            return;
+        if (now < stageBannerUntil) {
+            paint.setColor(0xCC102A48);
+            canvas.drawRoundRect(w * 0.20f, h * 0.34f, w * 0.80f, h * 0.44f, 16 * density, 16 * density, paint);
+            paint.setColor(0xFF70F2FF);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTextSize(23 * density);
+            canvas.drawText("STAGE " + displayedStage, w / 2f, h * 0.405f, paint);
         }
         postInvalidateDelayed(16);
     }
@@ -190,7 +211,7 @@ public class StarCatchView extends View {
         running = false;
         lastScore = score;
         objects.clear();
-        listener.onFinished(score, Math.min(45, (int) elapsedSeconds), hitHazard);
+        listener.onFinished(score, (int) elapsedSeconds, hitHazard);
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
