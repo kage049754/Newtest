@@ -3,6 +3,9 @@ package com.kage049754.adquest;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.view.MotionEvent;
 import android.view.View;
 import java.util.ArrayList;
@@ -88,7 +91,19 @@ public class StarCatchView extends View {
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         float w = getWidth(), h = getHeight();
-        canvas.drawColor(0xFF0C1830);
+        paint.setShader(new LinearGradient(0, 0, w, h, new int[]{0xFF071322, 0xFF102B4A, 0xFF08152A}, null, Shader.TileMode.CLAMP));
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(1 * density);
+        paint.setColor(0x222CE5FF);
+        for (float gx = 0; gx < w; gx += 34 * density) canvas.drawLine(gx, 0, gx, h, paint);
+        for (float gy = 0; gy < h; gy += 34 * density) canvas.drawLine(0, gy, w, gy, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(2 * density);
+        paint.setColor(0x6639DDF7);
+        canvas.drawRoundRect(3 * density, 3 * density, w - 3 * density, h - 3 * density, 18 * density, 18 * density, paint);
+        paint.setStyle(Paint.Style.FILL);
         paint.setStyle(Paint.Style.FILL);
         for (int i = 0; i < 30; i++) {
             paint.setColor(i % 4 == 0 ? 0xFF31516E : 0xFF1D3554);
@@ -101,10 +116,10 @@ public class StarCatchView extends View {
             paint.setColor(0xFFEAF7FF);
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setTextSize(20 * density);
-            canvas.drawText("SURVIVE THE FALL", w / 2f, h / 2f - 12 * density, paint);
+            canvas.drawText("LAST 1%", w / 2f, h / 2f - 12 * density, paint);
             paint.setTextSize(13 * density);
             paint.setColor(0xFF8DAAC8);
-            canvas.drawText("Drag to dodge • Collect cyan energy", w / 2f, h / 2f + 18 * density, paint);
+            canvas.drawText("ENDLESS ARENA  •  DODGE  •  COLLECT", w / 2f, h / 2f + 18 * density, paint);
             return;
         }
         if (paused) return;
@@ -137,15 +152,28 @@ public class StarCatchView extends View {
             FallingObject object = iterator.next();
             object.y += object.speed * delta;
             if (object.orb) {
-                paint.setColor(0xFF55E8FF);
-                canvas.drawCircle(object.x, object.y, object.radius * 1.55f, paint);
-                paint.setColor(0xFFE8FCFF);
-                canvas.drawCircle(object.x, object.y, object.radius * 0.65f, paint);
-            } else {
-                paint.setColor(0xFFFF4F6D);
+                paint.setColor(0x3355E8FF);
+                canvas.drawCircle(object.x, object.y, object.radius * 2.0f, paint);
+                paint.setColor(0xFF20C9F4);
                 canvas.drawCircle(object.x, object.y, object.radius, paint);
-                paint.setColor(0xFF7D1838);
-                canvas.drawCircle(object.x, object.y, object.radius * 0.48f, paint);
+                paint.setColor(0xFFBDFBFF);
+                canvas.drawCircle(object.x, object.y, object.radius * 0.45f, paint);
+                paint.setColor(0xFFFFFFFF);
+                canvas.drawCircle(object.x - object.radius * 0.22f, object.y - object.radius * 0.24f, object.radius * 0.16f, paint);
+            } else {
+                paint.setColor(0x55FF345B);
+                canvas.drawCircle(object.x, object.y, object.radius * 1.55f, paint);
+                Path shard = new Path();
+                shard.moveTo(object.x, object.y - object.radius * 1.2f);
+                shard.lineTo(object.x + object.radius * 0.88f, object.y - object.radius * 0.25f);
+                shard.lineTo(object.x + object.radius * 0.65f, object.y + object.radius * 0.82f);
+                shard.lineTo(object.x - object.radius * 0.55f, object.y + object.radius);
+                shard.lineTo(object.x - object.radius, object.y - object.radius * 0.15f);
+                shard.close();
+                paint.setColor(0xFFFF4268);
+                canvas.drawPath(shard, paint);
+                paint.setColor(0xFFFFB2C2);
+                canvas.drawCircle(object.x - object.radius * 0.2f, object.y - object.radius * 0.15f, object.radius * 0.18f, paint);
             }
 
             float dx = playerX - object.x;
@@ -178,10 +206,16 @@ public class StarCatchView extends View {
         }
 
         if (now >= invulnerableUntil) invulnerable = false;
-        paint.setColor(invulnerable && (now / 100) % 2 == 0 ? 0xFFB9FFFC : 0xFF4DDAFF);
+        paint.setColor(0x334DDAFF);
+        canvas.drawCircle(playerX, playerY, playerRadius * 1.85f, paint);
+        paint.setColor(invulnerable && (now / 100) % 2 == 0 ? 0xFFFFFFFF : 0xFF43E7FF);
         canvas.drawCircle(playerX, playerY, playerRadius + 4 * density, paint);
-        paint.setColor(0xFF092A4A);
-        canvas.drawCircle(playerX, playerY, playerRadius * 0.58f, paint);
+        paint.setColor(0xFF102E50);
+        canvas.drawCircle(playerX, playerY, playerRadius * 0.72f, paint);
+        paint.setColor(0xFF9CFAFF);
+        canvas.drawCircle(playerX, playerY, playerRadius * 0.28f, paint);
+        paint.setColor(0xFFEAF7FF);
+        canvas.drawCircle(playerX - playerRadius * 0.2f, playerY - playerRadius * 0.28f, playerRadius * 0.12f, paint);
 
         paint.setColor(0xFFEAF7FF);
         paint.setTextAlign(Paint.Align.LEFT);
