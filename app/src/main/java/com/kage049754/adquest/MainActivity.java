@@ -29,37 +29,39 @@ public class MainActivity extends Activity {
     private StarCatchView game;
     private AdView banner;
     private RewardedAd rewardedAd;
-    private int coins = 0;
+    private int coins;
     private boolean roundEnded = true;
+    private boolean rewardUsedThisRound;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(17, 27, 46));
-        getWindow().setNavigationBarColor(Color.rgb(17, 27, 46));
-        MobileAds.initialize(this, initializationStatus -> runOnUiThread(this::loadRewardedAd));
+        coins = getPreferences(MODE_PRIVATE).getInt("coins", 0);
+        getWindow().setStatusBarColor(Color.rgb(10, 17, 32));
+        getWindow().setNavigationBarColor(Color.rgb(10, 17, 32));
         buildUi();
+        MobileAds.initialize(this, initializationStatus -> runOnUiThread(this::loadRewardedAd));
     }
 
     private void buildUi() {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(17, 27, 46));
+        root.setBackgroundColor(Color.rgb(10, 17, 32));
         root.setPadding(dp(14), dp(10), dp(14), dp(6));
 
         TextView title = new TextView(this);
-        title.setText("★  STAR CATCH");
-        title.setTextColor(Color.rgb(255, 221, 120));
-        title.setTextSize(25);
+        title.setText("LAST 1%");
+        title.setTextColor(Color.rgb(92, 232, 255));
+        title.setTextSize(28);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, dp(5), 0, dp(4));
-        root.addView(title, new LinearLayout.LayoutParams(-1, dp(42)));
+        root.addView(title, new LinearLayout.LayoutParams(-1, dp(44)));
 
         status = new TextView(this);
-        status.setText("Catch stars. Avoid bombs. You have 30 seconds!");
+        status.setText("One hit ends the run. Dodge hazards and collect energy.");
         status.setTextColor(Color.WHITE);
         status.setTextSize(14);
         status.setGravity(Gravity.CENTER);
-        root.addView(status, new LinearLayout.LayoutParams(-1, dp(36)));
+        root.addView(status, new LinearLayout.LayoutParams(-1, dp(42)));
 
         FrameLayout gameFrame = new FrameLayout(this);
         game = new StarCatchView(this, this::onRoundFinished);
@@ -70,12 +72,12 @@ public class MainActivity extends Activity {
         root.addView(gameFrame, gameParams);
 
         playButton = new Button(this);
-        playButton.setText("START ROUND");
+        playButton.setText("START SURVIVAL");
         playButton.setOnClickListener(v -> startRound());
         root.addView(playButton, new LinearLayout.LayoutParams(-1, dp(50)));
 
         rewardButton = new Button(this);
-        rewardButton.setText("DOUBLE COINS — WATCH TEST AD");
+        rewardButton.setText("BONUS COINS — WATCH TEST AD");
         rewardButton.setVisibility(View.GONE);
         rewardButton.setOnClickListener(v -> showRewardedAd());
         root.addView(rewardButton, new LinearLayout.LayoutParams(-1, dp(48)));
@@ -86,26 +88,33 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams adParams = new LinearLayout.LayoutParams(-1, dp(50));
         adParams.topMargin = dp(4);
         root.addView(banner, adParams);
-        banner.loadAd(new AdRequest.Builder().build());
         setContentView(root);
+        banner.loadAd(new AdRequest.Builder().build());
     }
 
     private void startRound() {
         roundEnded = false;
+        rewardUsedThisRound = false;
         rewardButton.setVisibility(View.GONE);
+        rewardButton.setEnabled(false);
         playButton.setEnabled(false);
-        status.setText("Score 0  •  Coins " + coins + "  •  Tap the stars!");
+        playButton.setText("SURVIVE!");
+        status.setText("Coins " + coins + " • One hit ends the run");
         game.startRound();
     }
 
     private void onRoundFinished(int score) {
         roundEnded = true;
-        int earned = Math.max(1, score / 2);
+        int earned = Math.max(1, score / 3);
         coins += earned;
-        getPreferences(MODE_PRIVATE).edit().putInt("coins", coins).putInt("best", Math.max(score, getPreferences(MODE_PRIVATE).getInt("best", 0))).apply();
-        status.setText("Round over! Score " + score + "  •  +" + earned + " coins  •  Total " + coins);
+        getPreferences(MODE_PRIVATE).edit()
+                .putInt("coins", coins)
+                .putInt("best", Math.max(score, getPreferences(MODE_PRIVATE).getInt("best", 0)))
+                .apply();
+        int best = getPreferences(MODE_PRIVATE).getInt("best", score);
+        status.setText("Run over • Score " + score + " • Best " + best + " • +" + earned + " coins");
         playButton.setEnabled(true);
-        playButton.setText("PLAY AGAIN");
+        playButton.setText("TRY AGAIN");
         rewardButton.setVisibility(View.VISIBLE);
         loadRewardedAd();
     }
@@ -113,27 +122,41 @@ public class MainActivity extends Activity {
     private void loadRewardedAd() {
         AdRequest request = new AdRequest.Builder().build();
         RewardedAd.load(this, REWARDED_TEST_ID, request, new RewardedAdLoadCallback() {
-            @Override public void onAdLoaded(RewardedAd ad) { rewardedAd = ad; rewardButton.setEnabled(true); }
-            @Override public void onAdFailedToLoad(LoadAdError error) { rewardedAd = null; rewardButton.setEnabled(false); }
+            @Override public void onAdLoaded(RewardedAd ad) {
+                rewardedAd = ad;
+                if (rewardButton != null) rewardButton.setEnabled(true);
+            }
+            @Override public void onAdFailedToLoad(LoadAdError error) {
+                rewardedAd = null;
+                if (rewardButton != null) rewardButton.setEnabled(false);
+            }
         });
     }
 
     private void showRewardedAd() {
-        if (!roundEnded || rewardedAd == null) {
-            status.setText("Test ad is not ready yet. Try again in a moment.");
+        if (!roundEnded || rewardUsedThisRound) return;
+        if (rewardedAd == null) {
+            status.setText("Bonus ad is not ready. You can still play again.");
             loadRewardedAd();
             return;
         }
         rewardButton.setEnabled(false);
+        rewardUsedThisRound = true;
         rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override public void onAdDismissedFullScreenContent() { rewardedAd = null; loadRewardedAd(); }
-            @Override public void onAdFailedToShowFullScreenContent(AdError error) { rewardedAd = null; loadRewardedAd(); }
+            @Override public void onAdDismissedFullScreenContent() {
+                rewardedAd = null;
+                loadRewardedAd();
+            }
+            @Override public void onAdFailedToShowFullScreenContent(AdError error) {
+                rewardedAd = null;
+                loadRewardedAd();
+            }
         });
         rewardedAd.show(this, (RewardItem item) -> {
-            int bonus = Math.max(1, game.getLastScore() / 2);
+            int bonus = Math.max(1, game.getLastScore() / 3);
             coins += bonus;
             getPreferences(MODE_PRIVATE).edit().putInt("coins", coins).apply();
-            status.setText("Reward earned! +" + bonus + " bonus coins  •  Total " + coins);
+            status.setText("Bonus earned! +" + bonus + " coins • Total " + coins);
             rewardButton.setVisibility(View.GONE);
         });
     }
