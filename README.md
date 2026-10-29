@@ -1,45 +1,31 @@
-# Last 1% — LibGDX Endless Survival
+# DroidFlow
 
-**Last 1%** is a free, offline-first Android arcade survival game built with **LibGDX 1.13.1** and Java. Guide a glowing energy core, collect cyan energy, dodge red shards, and survive an endless stream of increasingly difficult hazards.
+DroidFlow is an offline-first Android routine and shortcut manager built with Kotlin, Jetpack Compose, and Material 3 dynamic color.
 
-## Current LibGDX rebuild
+## Current features
+- Material You interface with system dynamic colors on Android 12+ and a light fallback on older versions.
+- Home dashboard and quick actions for Wi-Fi, Bluetooth, display, battery, and Android settings.
+- Create, enable, disable, run, and delete personal flows.
+- Six reusable routine templates for study, connectivity, battery, wind-down, Bluetooth, and time settings.
+- Local persistence of flow definitions; no account or server required.
+- Settings shortcuts for app permissions, notifications, battery, and system settings.
+- Explicit user-triggered actions; no hidden device control or accessibility automation.
 
-- **Engine:** LibGDX Android backend with Java 17; no paid tools, assets, or services required.
-- **Game presentation:** sci-fi arena grid, layered neon panels, glowing energy core, cyan collectibles, red shard hazards, particle bursts, score HUD, and arcade-style panels/buttons.
-- **Screens:** base menu, active gameplay, pause overlay, core upgrade shop, and run-results screen.
-- **Endless progression:** difficulty and spawn frequency increase over time; stage advances every 45 seconds. There is no fixed timer-based win screen.
-- **Controls:** drag on the playfield to steer the core; tap pause to resume or end a run.
-- **Progression:** energy pickups increase score; shield absorbs one collision per run; amplifier upgrades improve pickup score. Coins, best score, and amplifier level persist locally.
-- **Privacy/offline:** gameplay uses no account, server, or network connection. The earlier AdMob test integration is removed from this LibGDX rebuild.
-- **Assets:** all current visuals are drawn at runtime with LibGDX primitives, so the APK needs no external art downloads. Original sprite sheets, richer animation, and synthesized/recorded audio are future polish items.
+## Android limitations
+DroidFlow opens relevant Android settings pages rather than silently changing protected system settings. Device version and manufacturer determine which settings pages are available. Scheduled reminders and multi-step background triggers are planned for later phases using supported Android APIs.
 
-## Build and verify
+## Build
+GitHub Actions builds a debug APK on every push to `main`, verifies that the APK exists and is non-empty, calculates its SHA-256, and uploads it as an artifact.
 
-GitHub Actions runs `gradle --no-daemon assembleDebug`, verifies that the APK exists and is non-empty, prints its SHA-256, and uploads the `Last1Percent-debug-apk` artifact.
+Open **Actions → DroidFlow Android APK → latest successful run → Artifacts** to download the APK.
 
-1. Open [GitHub Actions](https://github.com/kage049754/Newtest/actions).
-2. Choose the latest **Android Debug APK** run that has completed successfully.
-3. Download the `Last1Percent-debug-apk` artifact and extract the APK.
-
-CI verifies compilation and artifact creation, not physical-device installation, gameplay balance, or device-specific performance.
-
-## Technology
-
-- Java 17
-- LibGDX 1.13.1
-- Android SDK / Gradle 8.9
-- GitHub Actions
+Requirements: JDK 17, Gradle 8.9, Android SDK platform 35. No paid services or API keys are required.
 
 ## Roadmap
+1. Core Material You dashboard, editable flows, templates, local persistence, and quick actions.
+2. Add reliable reminder scheduling, notification controls, and persistent run history.
+3. Add user-defined trigger conditions and reusable multi-step routines.
+4. Add import/export, backup/restore, and automated UI tests.
+5. Verify behavior on real Android devices and document OEM-specific limitations.
 
-- [x] Migrate rendering and game loop to LibGDX Android backend
-- [x] Add arcade-style base, gameplay HUD, pause, shop, and results screens
-- [x] Add endless hazards, pickups, collision, particles, and time-based difficulty
-- [x] Persist coins, best score, and amplifier upgrades locally
-- [ ] Physical Android play-test and tune controls/difficulty
-- [ ] Add original sprite assets, richer enemy patterns, and animated transitions
-- [ ] Add adjustable original music and sound effects
-- [ ] Add unlockable core skins and stage-specific arenas
-- [ ] Release signing, accessibility review, and store testing
-
-This is an active prototype. Do not treat a successful CI build as proof of device testing or production readiness.
+DroidFlow is a local utility, not a game. It does not use AccessibilityService to automate arbitrary third-party apps.
