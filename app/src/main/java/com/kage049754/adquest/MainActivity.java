@@ -10,8 +10,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.FrameLayout;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.rewarded.RewardItem;
@@ -22,74 +20,89 @@ import com.google.android.gms.ads.AdError;
 
 public class MainActivity extends Activity {
     private static final String REWARDED_TEST_ID = "ca-app-pub-3940256099942544/5224354917";
-    private static final String BANNER_TEST_ID = "ca-app-pub-3940256099942544/9214589741";
     private LinearLayout root;
-    private TextView status;
-    private Button playButton, rewardButton;
+    private TextView status, wallet;
+    private Button playButton, rewardButton, shieldButton, boostButton;
     private StarCatchView game;
-    private AdView banner;
     private RewardedAd rewardedAd;
-    private int coins;
+    private int coins, best, shieldLevel, boostLevel;
     private boolean roundEnded = true;
     private boolean rewardUsedThisRound;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         coins = getPreferences(MODE_PRIVATE).getInt("coins", 0);
-        getWindow().setStatusBarColor(Color.rgb(10, 17, 32));
-        getWindow().setNavigationBarColor(Color.rgb(10, 17, 32));
+        best = getPreferences(MODE_PRIVATE).getInt("best", 0);
+        shieldLevel = getPreferences(MODE_PRIVATE).getInt("shieldLevel", 0);
+        boostLevel = getPreferences(MODE_PRIVATE).getInt("boostLevel", 0);
+        getWindow().setStatusBarColor(Color.rgb(7, 13, 28));
+        getWindow().setNavigationBarColor(Color.rgb(7, 13, 28));
         buildUi();
+        refreshWallet();
         MobileAds.initialize(this, initializationStatus -> runOnUiThread(this::loadRewardedAd));
     }
 
     private void buildUi() {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(10, 17, 32));
-        root.setPadding(dp(14), dp(10), dp(14), dp(6));
+        root.setBackgroundColor(Color.rgb(7, 13, 28));
+        root.setPadding(dp(12), dp(6), dp(12), dp(6));
 
         TextView title = new TextView(this);
         title.setText("LAST 1%");
-        title.setTextColor(Color.rgb(92, 232, 255));
-        title.setTextSize(28);
+        title.setTextColor(Color.rgb(91, 235, 255));
+        title.setTextSize(29);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, dp(5), 0, dp(4));
-        root.addView(title, new LinearLayout.LayoutParams(-1, dp(44)));
+        title.setPadding(0, dp(3), 0, dp(2));
+        root.addView(title, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        wallet = new TextView(this);
+        wallet.setTextColor(Color.rgb(255, 220, 120));
+        wallet.setTextSize(14);
+        wallet.setGravity(Gravity.CENTER);
+        root.addView(wallet, new LinearLayout.LayoutParams(-1, dp(26)));
 
         status = new TextView(this);
-        status.setText("One hit ends the run. Dodge hazards and collect energy.");
+        status.setText("Drag to move. Collect energy. One hit ends your run.");
         status.setTextColor(Color.WHITE);
-        status.setTextSize(14);
+        status.setTextSize(13);
         status.setGravity(Gravity.CENTER);
-        root.addView(status, new LinearLayout.LayoutParams(-1, dp(42)));
+        root.addView(status, new LinearLayout.LayoutParams(-1, dp(38)));
 
         FrameLayout gameFrame = new FrameLayout(this);
         game = new StarCatchView(this, this::onRoundFinished);
         gameFrame.addView(game, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout.LayoutParams gameParams = new LinearLayout.LayoutParams(-1, 0, 1f);
-        gameParams.topMargin = dp(6);
-        gameParams.bottomMargin = dp(8);
+        gameParams.topMargin = dp(4);
+        gameParams.bottomMargin = dp(5);
         root.addView(gameFrame, gameParams);
 
         playButton = new Button(this);
         playButton.setText("START SURVIVAL");
         playButton.setOnClickListener(v -> startRound());
-        root.addView(playButton, new LinearLayout.LayoutParams(-1, dp(50)));
+        root.addView(playButton, new LinearLayout.LayoutParams(-1, dp(46)));
+
+        LinearLayout upgrades = new LinearLayout(this);
+        upgrades.setOrientation(LinearLayout.HORIZONTAL);
+        shieldButton = new Button(this);
+        boostButton = new Button(this);
+        shieldButton.setTextSize(11);
+        boostButton.setTextSize(11);
+        shieldButton.setOnClickListener(v -> buyShield());
+        boostButton.setOnClickListener(v -> buyBoost());
+        upgrades.addView(shieldButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        upgrades.addView(boostButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        root.addView(upgrades);
+        refreshUpgradeButtons();
 
         rewardButton = new Button(this);
-        rewardButton.setText("BONUS COINS — WATCH TEST AD");
+        rewardButton.setText("CLAIM BONUS COINS — REWARDED TEST AD");
+        rewardButton.setTextSize(11);
         rewardButton.setVisibility(View.GONE);
         rewardButton.setOnClickListener(v -> showRewardedAd());
-        root.addView(rewardButton, new LinearLayout.LayoutParams(-1, dp(48)));
+        root.addView(rewardButton, new LinearLayout.LayoutParams(-1, dp(44)));
 
-        banner = new AdView(this);
-        banner.setAdSize(AdSize.BANNER);
-        banner.setAdUnitId(BANNER_TEST_ID);
-        LinearLayout.LayoutParams adParams = new LinearLayout.LayoutParams(-1, dp(50));
-        adParams.topMargin = dp(4);
-        root.addView(banner, adParams);
         setContentView(root);
-        banner.loadAd(new AdRequest.Builder().build());
     }
 
     private void startRound() {
@@ -98,30 +111,87 @@ public class MainActivity extends Activity {
         rewardButton.setVisibility(View.GONE);
         rewardButton.setEnabled(false);
         playButton.setEnabled(false);
+        shieldButton.setEnabled(false);
+        boostButton.setEnabled(false);
         playButton.setText("SURVIVE!");
-        status.setText("Coins " + coins + " • One hit ends the run");
+        status.setText("Drag left and right • Avoid the red hazards");
+        game.setRunUpgrades(shieldLevel > 0, boostLevel);
         game.startRound();
     }
 
-    private void onRoundFinished(int score) {
+    private void onRoundFinished(int score, int survivedSeconds, boolean hitHazard) {
         roundEnded = true;
-        int earned = Math.max(1, score / 3);
+        int earned = Math.max(1, score / 4 + survivedSeconds / 5);
         coins += earned;
+        if (score > best) best = score;
         getPreferences(MODE_PRIVATE).edit()
-                .putInt("coins", coins)
-                .putInt("best", Math.max(score, getPreferences(MODE_PRIVATE).getInt("best", 0)))
-                .apply();
-        int best = getPreferences(MODE_PRIVATE).getInt("best", score);
-        status.setText("Run over • Score " + score + " • Best " + best + " • +" + earned + " coins");
+                .putInt("coins", coins).putInt("best", best)
+                .putInt("shieldLevel", shieldLevel).putInt("boostLevel", boostLevel).apply();
+        refreshWallet();
+        status.setText((hitHazard ? "Core destroyed" : "45 seconds survived!")
+                + " • Score " + score + " • +" + earned + " coins");
         playButton.setEnabled(true);
-        playButton.setText("TRY AGAIN");
+        playButton.setText("RUN IT BACK");
+        shieldButton.setEnabled(true);
+        boostButton.setEnabled(true);
         rewardButton.setVisibility(View.VISIBLE);
         loadRewardedAd();
     }
 
+    private void buyShield() {
+        if (!roundEnded) return;
+        if (shieldLevel == 0 && coins >= 50) {
+            coins -= 50;
+            shieldLevel = 1;
+            saveProgress();
+            status.setText("Shield unlocked: blocks one hit each run.");
+            refreshWallet();
+            refreshUpgradeButtons();
+        } else if (shieldLevel > 0) {
+            status.setText("Shield is permanently unlocked.");
+        } else {
+            status.setText("You need 50 coins to unlock the shield.");
+        }
+    }
+
+    private void buyBoost() {
+        if (!roundEnded) return;
+        int cost = boostLevel == 0 ? 100 : boostLevel == 1 ? 200 : 350;
+        if (boostLevel >= 3) {
+            status.setText("Coin boost is fully upgraded.");
+            return;
+        }
+        if (coins < cost) {
+            status.setText("You need " + cost + " coins for the next coin boost.");
+            return;
+        }
+        coins -= cost;
+        boostLevel++;
+        saveProgress();
+        refreshWallet();
+        refreshUpgradeButtons();
+        status.setText("Coin boost upgraded to level " + boostLevel + ".");
+    }
+
+    private void refreshWallet() {
+        if (wallet != null) wallet.setText("COINS  " + coins + "     BEST  " + best);
+    }
+
+    private void refreshUpgradeButtons() {
+        if (shieldButton != null) shieldButton.setText(shieldLevel > 0 ? "SHIELD ✓" : "SHIELD • 50");
+        if (boostButton != null) {
+            int cost = boostLevel == 0 ? 100 : boostLevel == 1 ? 200 : 350;
+            boostButton.setText(boostLevel >= 3 ? "COIN BOOST MAX" : "COIN BOOST " + boostLevel + " • " + cost);
+        }
+    }
+
+    private void saveProgress() {
+        getPreferences(MODE_PRIVATE).edit().putInt("coins", coins).putInt("best", best)
+                .putInt("shieldLevel", shieldLevel).putInt("boostLevel", boostLevel).apply();
+    }
+
     private void loadRewardedAd() {
-        AdRequest request = new AdRequest.Builder().build();
-        RewardedAd.load(this, REWARDED_TEST_ID, request, new RewardedAdLoadCallback() {
+        RewardedAd.load(this, REWARDED_TEST_ID, new AdRequest.Builder().build(), new RewardedAdLoadCallback() {
             @Override public void onAdLoaded(RewardedAd ad) {
                 rewardedAd = ad;
                 if (rewardButton != null) rewardButton.setEnabled(true);
@@ -136,7 +206,7 @@ public class MainActivity extends Activity {
     private void showRewardedAd() {
         if (!roundEnded || rewardUsedThisRound) return;
         if (rewardedAd == null) {
-            status.setText("Bonus ad is not ready. You can still play again.");
+            status.setText("Rewarded ad is not ready yet. Try again shortly.");
             loadRewardedAd();
             return;
         }
@@ -153,10 +223,11 @@ public class MainActivity extends Activity {
             }
         });
         rewardedAd.show(this, (RewardItem item) -> {
-            int bonus = Math.max(1, game.getLastScore() / 3);
+            int bonus = Math.max(5, game.getLastScore() / 3);
             coins += bonus;
-            getPreferences(MODE_PRIVATE).edit().putInt("coins", coins).apply();
-            status.setText("Bonus earned! +" + bonus + " coins • Total " + coins);
+            saveProgress();
+            refreshWallet();
+            status.setText("Reward claimed: +" + bonus + " bonus coins.");
             rewardButton.setVisibility(View.GONE);
         });
     }
@@ -164,19 +235,12 @@ public class MainActivity extends Activity {
     private int dp(int value) { return (int) (value * getResources().getDisplayMetrics().density + 0.5f); }
 
     @Override protected void onPause() {
-        if (banner != null) banner.pause();
         if (game != null) game.pauseGame();
         super.onPause();
     }
 
     @Override protected void onResume() {
         super.onResume();
-        if (banner != null) banner.resume();
         if (game != null) game.resumeGame();
-    }
-
-    @Override protected void onDestroy() {
-        if (banner != null) banner.destroy();
-        super.onDestroy();
     }
 }
