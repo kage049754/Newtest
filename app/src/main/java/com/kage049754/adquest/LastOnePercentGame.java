@@ -52,7 +52,7 @@ public class LastOnePercentGame extends Game {
         boolean running=false,over=false,paused=false,dragging=false,audio=true;
         String screen="home";
         ArenaScreen(LastOnePercentGame g) { game=g; coins=prefs.getInteger("coins",0); best=prefs.getInteger("best",0); boost=prefs.getInteger("boost",0); }
-        @Override public void show() { Gdx.input.setInputProcessor(this); Gdx.input.setCatchBackKey(true); }
+        @Override public void show() { Gdx.input.setInputProcessor(this); Gdx.input.setCatchKey(com.badlogic.gdx.Input.Keys.BACK, true); }
         @Override public void render(float delta) {
             float dt=Math.min(delta,.033f);
             if (running && !paused) update(dt);
@@ -94,7 +94,7 @@ public class LastOnePercentGame extends Game {
             shapes.setColor(.018f,.025f,.075f,1); shapes.rect(0,0,w,h);
             for(int i=0;i<9;i++) { float yy=(i*113f+(elapsed*8)%113); shapes.setColor(.08f,.15f,.3f,.12f); shapes.rect(0,yy,w,1); }
             for(int i=0;i<7;i++) { float xx=i*80; shapes.setColor(.08f,.15f,.3f,.12f); shapes.rect(xx,0,1,h); }
-            shapes.setColor(.08f,.3f,.52f,.18f); shapes.rect(12,12,w-24,h-24,2,2);
+            shapes.setColor(.08f,.3f,.52f,.18f); shapes.rect(12,12,w-24,h-24);
             shapes.end();
             batch.begin(); font.getData().setScale(1); font.setColor(.17f,.55f,.76f,.24f);
             for(int i=0;i<12;i++) font.draw(batch,"+",24+(i*79)%430,40+(i*137)%780);
