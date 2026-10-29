@@ -122,7 +122,6 @@ public class LastOnePercentGame extends Game {
             shapes.setColor(.8f,1,1,1); shapes.circle(px-5,py+6,5);
             shapes.end();
             drawHud();
-            if(paused) drawPause();
         }
         void drawHud() {
             batch.begin(); font.getData().setScale(1.5f); font.setColor(Color.WHITE);
