@@ -25,7 +25,7 @@ public class StarCatchView extends View {
     private final Random random = new Random();
     private final RoundListener listener;
     private final float density;
-    private long startTime, lastSpawn, lastFrame;
+    private long startTime, lastSpawn, lastFrame, pauseStartedAt, pausedTotal;
     private int score, lastScore, coinBoost;
     private boolean running, paused, shieldOwned, shieldAvailable, hitHazard;
     private float playerX, playerY, playerRadius, elapsedSeconds;
@@ -56,6 +56,8 @@ public class StarCatchView extends View {
         playerY = Math.max(playerRadius * 2, getHeight() - 58 * density);
         startTime = System.currentTimeMillis();
         lastFrame = startTime;
+        pauseStartedAt = 0;
+        pausedTotal = 0;
         lastSpawn = startTime;
         running = true;
         paused = false;
@@ -63,8 +65,19 @@ public class StarCatchView extends View {
     }
 
     public int getLastScore() { return lastScore; }
-    public void pauseGame() { paused = true; }
-    public void resumeGame() { if (running) { paused = false; lastFrame = System.currentTimeMillis(); postInvalidate(); } }
+    public void pauseGame() { if (running && !paused) { paused = true; pauseStartedAt = System.currentTimeMillis(); } }
+    public void resumeGame() {
+        if (running && paused) {
+            long now = System.currentTimeMillis();
+            long pauseDuration = Math.max(0, now - pauseStartedAt);
+            pausedTotal += pauseDuration;
+            startTime += pauseDuration;
+            lastSpawn += pauseDuration;
+            paused = false;
+            lastFrame = now;
+            postInvalidate();
+        }
+    }
 
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -135,6 +148,9 @@ public class StarCatchView extends View {
                     shieldAvailable = false;
                     invulnerable = true;
                     invulnerableUntil = now + 1300;
+                    iterator.remove();
+                    continue;
+                } else if (invulnerable) {
                     iterator.remove();
                     continue;
                 } else {
