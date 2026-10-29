@@ -10,131 +10,160 @@ import java.util.Iterator;
 import java.util.Random;
 
 public class StarCatchView extends View {
-    public interface RoundListener { void onFinished(int score); }
-    private static class Hazard {
+    public interface RoundListener { void onFinished(int score, int survivedSeconds, boolean hitHazard); }
+
+    private static class FallingObject {
         float x, y, radius, speed;
-        boolean energy;
-        Hazard(float x, float y, float radius, float speed, boolean energy) {
-            this.x = x; this.y = y; this.radius = radius; this.speed = speed; this.energy = energy;
+        boolean orb;
+        FallingObject(float x, float y, float radius, float speed, boolean orb) {
+            this.x = x; this.y = y; this.radius = radius; this.speed = speed; this.orb = orb;
         }
     }
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final ArrayList<Hazard> hazards = new ArrayList<>();
+    private final ArrayList<FallingObject> objects = new ArrayList<>();
     private final Random random = new Random();
     private final RoundListener listener;
-    private long startTime, lastSpawn;
-    private int score, lastScore;
-    private boolean running = false, paused = false, ended = false;
-    private float density, playerX, playerY, playerRadius;
+    private final float density;
+    private long startTime, lastSpawn, lastFrame;
+    private int score, lastScore, coinBoost;
+    private boolean running, paused, shieldOwned, shieldAvailable, hitHazard;
+    private float playerX, playerY, playerRadius, elapsedSeconds;
+    private boolean invulnerable;
+    private long invulnerableUntil;
 
     public StarCatchView(Context context, RoundListener listener) {
         super(context);
         this.listener = listener;
         density = getResources().getDisplayMetrics().density;
-        playerRadius = 17 * density;
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
 
+    public void setRunUpgrades(boolean shield, int boost) {
+        shieldOwned = shield;
+        coinBoost = Math.max(0, Math.min(3, boost));
+    }
+
     public void startRound() {
-        hazards.clear();
+        objects.clear();
         score = 0;
-        ended = false;
+        elapsedSeconds = 0;
+        hitHazard = false;
+        shieldAvailable = shieldOwned;
+        invulnerable = false;
+        playerRadius = 15 * density;
+        playerX = Math.max(playerRadius, getWidth() / 2f);
+        playerY = Math.max(playerRadius * 2, getHeight() - 58 * density);
         startTime = System.currentTimeMillis();
+        lastFrame = startTime;
         lastSpawn = startTime;
-        playerX = getWidth() / 2f;
-        playerY = Math.max(playerRadius * 2, getHeight() - 52 * density);
         running = true;
         paused = false;
         invalidate();
     }
 
     public int getLastScore() { return lastScore; }
-    public void pauseGame() { if (running) paused = true; }
-    public void resumeGame() { paused = false; postInvalidate(); }
+    public void pauseGame() { paused = true; }
+    public void resumeGame() { if (running) { paused = false; lastFrame = System.currentTimeMillis(); postInvalidate(); } }
 
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawColor(0xFF101B31);
         float w = getWidth(), h = getHeight();
-        paint.setColor(0xFF1A2945);
-        for (int i = 0; i < 22; i++) {
-            float x = (i * 83f * density) % Math.max(1, w);
-            float y = (i * 127f * density) % Math.max(1, h);
-            canvas.drawCircle(x, y, (i % 3 + 1) * density, paint);
+        canvas.drawColor(0xFF0C1830);
+        paint.setStyle(Paint.Style.FILL);
+        for (int i = 0; i < 30; i++) {
+            paint.setColor(i % 4 == 0 ? 0xFF31516E : 0xFF1D3554);
+            float x = (i * 97f * density) % Math.max(1, w);
+            float y = (i * 139f * density) % Math.max(1, h);
+            canvas.drawCircle(x, y, (i % 3 == 0 ? 2.0f : 1.1f) * density, paint);
         }
 
         if (!running) {
-            paint.setColor(0xFF5CE8FF);
+            paint.setColor(0xFFEAF7FF);
             paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(30 * density);
-            canvas.drawText("LAST 1%", w / 2, h / 2 - 20 * density, paint);
-            paint.setColor(0xFFFFFFFF);
-            paint.setTextSize(14 * density);
-            canvas.drawText("Drag to dodge • collect cyan energy", w / 2, h / 2 + 14 * density, paint);
-            canvas.drawText("One collision ends the run", w / 2, h / 2 + 38 * density, paint);
+            paint.setTextSize(20 * density);
+            canvas.drawText("SURVIVE THE FALL", w / 2f, h / 2f - 12 * density, paint);
+            paint.setTextSize(13 * density);
+            paint.setColor(0xFF8DAAC8);
+            canvas.drawText("Drag to dodge • Collect cyan energy", w / 2f, h / 2f + 18 * density, paint);
             return;
         }
-        if (paused) {
-            paint.setColor(0xFFFFFFFF);
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(18 * density);
-            canvas.drawText("PAUSED", w / 2, h / 2, paint);
-            postInvalidateDelayed(100);
-            return;
-        }
+        if (paused) return;
 
         long now = System.currentTimeMillis();
-        long elapsed = now - startTime;
-        long remaining = Math.max(0, 45000 - elapsed);
-        long spawnInterval = Math.max(220, 650 - elapsed / 90);
+        float delta = Math.min(0.04f, Math.max(0f, (now - lastFrame) / 1000f));
+        lastFrame = now;
+        elapsedSeconds = (now - startTime) / 1000f;
+        float difficulty = Math.min(2.8f, 1f + elapsedSeconds / 24f);
+        long spawnInterval = Math.max(210, 650 - (long)(elapsedSeconds * 7));
         if (now - lastSpawn >= spawnInterval) {
-            float radius = (11 + random.nextInt(9)) * density;
-            boolean energy = random.nextFloat() < 0.34f;
-            float x = radius + random.nextFloat() * Math.max(1, w - 2 * radius);
-            float speed = (2.4f + random.nextFloat() * 2.1f + elapsed / 14000f) * density;
-            hazards.add(new Hazard(x, -radius, radius, speed, energy));
+            boolean orb = random.nextFloat() < Math.max(0.28f, 0.43f - elapsedSeconds / 180f);
+            float radius = (orb ? 10f : 13f + random.nextInt(6)) * density;
+            float minX = radius + 3 * density;
+            float maxX = Math.max(minX, w - radius - 3 * density);
+            float x = minX + random.nextFloat() * (maxX - minX);
+            float speed = (orb ? 155f : 185f + random.nextFloat() * 85f) * density * difficulty;
+            objects.add(new FallingObject(x, -radius, radius, speed, orb));
             lastSpawn = now;
         }
 
-        Iterator<Hazard> it = hazards.iterator();
-        while (it.hasNext()) {
-            Hazard item = it.next();
-            item.y += item.speed;
-            paint.setColor(item.energy ? 0xFF5CE8FF : 0xFFFF5268);
-            canvas.drawCircle(item.x, item.y, item.radius, paint);
-            paint.setColor(item.energy ? 0xFF0A5266 : 0xFF781E35);
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(item.radius * 1.2f);
-            canvas.drawText(item.energy ? "+" : "×", item.x, item.y + item.radius * 0.38f, paint);
+        Iterator<FallingObject> iterator = objects.iterator();
+        while (iterator.hasNext()) {
+            FallingObject object = iterator.next();
+            object.y += object.speed * delta;
+            if (object.orb) {
+                paint.setColor(0xFF55E8FF);
+                canvas.drawCircle(object.x, object.y, object.radius * 1.55f, paint);
+                paint.setColor(0xFFE8FCFF);
+                canvas.drawCircle(object.x, object.y, object.radius * 0.65f, paint);
+            } else {
+                paint.setColor(0xFFFF4F6D);
+                canvas.drawCircle(object.x, object.y, object.radius, paint);
+                paint.setColor(0xFF7D1838);
+                canvas.drawCircle(object.x, object.y, object.radius * 0.48f, paint);
+            }
 
-            float dx = playerX - item.x, dy = playerY - item.y;
-            float collision = playerRadius + item.radius * 0.72f;
-            if (dx * dx + dy * dy <= collision * collision) {
-                if (item.energy) {
-                    score += 10;
-                    it.remove();
+            float dx = playerX - object.x;
+            float dy = playerY - object.y;
+            float collisionDistance = playerRadius + object.radius * 0.78f;
+            if (dx * dx + dy * dy < collisionDistance * collisionDistance) {
+                if (object.orb) {
+                    score += 10 * (1 + coinBoost);
+                    iterator.remove();
+                    continue;
+                } else if (shieldAvailable) {
+                    shieldAvailable = false;
+                    invulnerable = true;
+                    invulnerableUntil = now + 1300;
+                    iterator.remove();
+                    continue;
                 } else {
+                    hitHazard = true;
                     finishRun();
                     return;
                 }
-            } else if (item.y > h + item.radius) {
-                if (!item.energy) score += 1;
-                it.remove();
             }
+            if (object.y > h + object.radius) iterator.remove();
         }
 
-        paint.setColor(0xFF5CE8FF);
-        canvas.drawCircle(playerX, playerY, playerRadius, paint);
-        paint.setColor(0xFF153A55);
-        canvas.drawCircle(playerX, playerY, playerRadius * 0.52f, paint);
-        paint.setColor(0xFFFFFFFF);
+        if (now >= invulnerableUntil) invulnerable = false;
+        paint.setColor(invulnerable && (now / 100) % 2 == 0 ? 0xFFB9FFFC : 0xFF4DDAFF);
+        canvas.drawCircle(playerX, playerY, playerRadius + 4 * density, paint);
+        paint.setColor(0xFF092A4A);
+        canvas.drawCircle(playerX, playerY, playerRadius * 0.58f, paint);
+
+        paint.setColor(0xFFEAF7FF);
         paint.setTextAlign(Paint.Align.LEFT);
-        paint.setTextSize(16 * density);
-        canvas.drawText("Score " + score, 12 * density, 26 * density, paint);
+        paint.setTextSize(15 * density);
+        canvas.drawText("ENERGY " + score, 12 * density, 25 * density, paint);
         paint.setTextAlign(Paint.Align.RIGHT);
-        canvas.drawText("Time " + (remaining / 1000 + (remaining % 1000 > 0 ? 1 : 0)), w - 12 * density, 26 * density, paint);
-        if (remaining <= 0) {
+        canvas.drawText("TIME " + Math.min(45, (int) elapsedSeconds) + "/45", w - 12 * density, 25 * density, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setTextSize(11 * density);
+        paint.setColor(shieldAvailable ? 0xFFB9FFFC : 0xFF6C819A);
+        canvas.drawText(shieldAvailable ? "SHIELD READY" : "DODGE!", w / 2f, h - 15 * density, paint);
+
+        if (elapsedSeconds >= 45f) {
             finishRun();
             return;
         }
@@ -142,19 +171,17 @@ public class StarCatchView extends View {
     }
 
     private void finishRun() {
-        if (ended) return;
-        ended = true;
         running = false;
         lastScore = score;
-        hazards.clear();
-        listener.onFinished(score);
+        objects.clear();
+        listener.onFinished(score, Math.min(45, (int) elapsedSeconds), hitHazard);
     }
 
     @Override public boolean onTouchEvent(MotionEvent event) {
         if (!running || paused) return true;
         if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_MOVE) {
             playerX = Math.max(playerRadius, Math.min(getWidth() - playerRadius, event.getX()));
-            playerY = Math.max(playerRadius * 2, Math.min(getHeight() - playerRadius, event.getY()));
+            playerY = Math.max(playerRadius * 2, Math.min(getHeight() - playerRadius * 2, event.getY()));
             invalidate();
             return true;
         }
