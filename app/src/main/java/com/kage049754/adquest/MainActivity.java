@@ -3,6 +3,7 @@ package com.kage049754.adquest;
 import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -24,6 +25,8 @@ public class MainActivity extends Activity {
     private TextView status, wallet;
     private Button playButton, rewardButton, shieldButton, boostButton;
     private StarCatchView game;
+    private Soundscape soundscape;
+    private Button soundButton;
     private RewardedAd rewardedAd;
     private int coins, best, shieldLevel, boostLevel;
     private boolean roundEnded = true;
@@ -35,6 +38,9 @@ public class MainActivity extends Activity {
         best = getPreferences(MODE_PRIVATE).getInt("best", 0);
         shieldLevel = getPreferences(MODE_PRIVATE).getInt("shieldLevel", 0);
         boostLevel = getPreferences(MODE_PRIVATE).getInt("boostLevel", 0);
+        soundscape = new Soundscape();
+        soundscape.setEnabled(getPreferences(MODE_PRIVATE).getBoolean("soundEnabled", true));
+        soundscape.setMusicEnabled(getPreferences(MODE_PRIVATE).getBoolean("musicEnabled", true));
         getWindow().setStatusBarColor(Color.rgb(7, 13, 28));
         getWindow().setNavigationBarColor(Color.rgb(7, 13, 28));
         buildUi();
@@ -52,6 +58,7 @@ public class MainActivity extends Activity {
         title.setText("LAST 1%");
         title.setTextColor(Color.rgb(91, 235, 255));
         title.setTextSize(29);
+        title.setTypeface(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.BOLD));
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, dp(3), 0, dp(2));
         root.addView(title, new LinearLayout.LayoutParams(-1, dp(42)));
@@ -59,18 +66,19 @@ public class MainActivity extends Activity {
         wallet = new TextView(this);
         wallet.setTextColor(Color.rgb(255, 220, 120));
         wallet.setTextSize(14);
+        wallet.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
         wallet.setGravity(Gravity.CENTER);
         root.addView(wallet, new LinearLayout.LayoutParams(-1, dp(26)));
 
         status = new TextView(this);
-        status.setText("Drag to move. Collect energy. One hit ends your run.");
+        status.setText("ENDLESS SURVIVAL  •  Dodge hazards. Collect energy.");
         status.setTextColor(Color.WHITE);
         status.setTextSize(13);
         status.setGravity(Gravity.CENTER);
         root.addView(status, new LinearLayout.LayoutParams(-1, dp(38)));
 
         FrameLayout gameFrame = new FrameLayout(this);
-        game = new StarCatchView(this, this::onRoundFinished);
+        game = new StarCatchView(this, this::onRoundFinished, soundscape);
         gameFrame.addView(game, new FrameLayout.LayoutParams(-1, -1));
         LinearLayout.LayoutParams gameParams = new LinearLayout.LayoutParams(-1, 0, 1f);
         gameParams.topMargin = dp(4);
@@ -78,7 +86,8 @@ public class MainActivity extends Activity {
         root.addView(gameFrame, gameParams);
 
         playButton = new Button(this);
-        playButton.setText("START SURVIVAL");
+        playButton.setText("▶   START SURVIVAL");
+        styleButton(playButton, 0xFF17D9E8, 0xFF087DAB, Color.WHITE, 15);
         playButton.setOnClickListener(v -> startRound());
         root.addView(playButton, new LinearLayout.LayoutParams(-1, dp(46)));
 
@@ -93,10 +102,21 @@ public class MainActivity extends Activity {
         upgrades.addView(shieldButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
         upgrades.addView(boostButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
         root.addView(upgrades);
+        styleButton(shieldButton, 0xFF203B59, 0xFF132940, 0xFFBCEEFF, 11);
+        styleButton(boostButton, 0xFF203B59, 0xFF132940, 0xFFFFD98A, 11);
+        soundButton = new Button(this);
+        soundButton.setTextSize(11);
+        soundButton.setOnClickListener(v -> toggleSound());
+        styleButton(soundButton, 0xFF203B59, 0xFF132940, 0xFFEAF7FF, 11);
+        LinearLayout.LayoutParams soundParams = new LinearLayout.LayoutParams(-1, dp(38));
+        soundParams.topMargin = dp(4);
+        root.addView(soundButton, soundParams);
+        refreshSoundButton();
         refreshUpgradeButtons();
 
         rewardButton = new Button(this);
-        rewardButton.setText("CLAIM BONUS COINS — REWARDED TEST AD");
+        rewardButton.setText("▶  CLAIM BONUS COINS  •  REWARDED AD");
+        styleButton(rewardButton, 0xFFFFC857, 0xFFDF8733, 0xFF172238, 11);
         rewardButton.setTextSize(11);
         rewardButton.setVisibility(View.GONE);
         rewardButton.setOnClickListener(v -> showRewardedAd());
@@ -114,7 +134,7 @@ public class MainActivity extends Activity {
         shieldButton.setEnabled(false);
         boostButton.setEnabled(false);
         playButton.setText("SURVIVE!");
-        status.setText("Drag left and right • Avoid the red hazards");
+        status.setText("SURVIVE AS LONG AS YOU CAN  •  Stage difficulty rises every minute");
         game.setRunUpgrades(shieldLevel > 0, boostLevel);
         game.startRound();
     }
@@ -128,10 +148,13 @@ public class MainActivity extends Activity {
                 .putInt("coins", coins).putInt("best", best)
                 .putInt("shieldLevel", shieldLevel).putInt("boostLevel", boostLevel).apply();
         refreshWallet();
-        status.setText((hitHazard ? "Core destroyed" : "45 seconds survived!")
-                + " • Score " + score + " • +" + earned + " coins");
+        int minutes = survivedSeconds / 60;
+        int seconds = survivedSeconds % 60;
+        status.setText((hitHazard ? "CORE DESTROYED" : "RUN ENDED")
+                + "  •  " + String.format(java.util.Locale.US, "%d:%02d", minutes, seconds)
+                + " survived  •  Score " + score + "  •  +" + earned + " coins");
         playButton.setEnabled(true);
-        playButton.setText("RUN IT BACK");
+        playButton.setText("↻   PLAY AGAIN");
         shieldButton.setEnabled(true);
         boostButton.setEnabled(true);
         rewardButton.setVisibility(View.VISIBLE);
@@ -174,14 +197,14 @@ public class MainActivity extends Activity {
     }
 
     private void refreshWallet() {
-        if (wallet != null) wallet.setText("COINS  " + coins + "     BEST  " + best);
+        if (wallet != null) wallet.setText("◈  " + coins + " COINS     ✦  BEST " + best);
     }
 
     private void refreshUpgradeButtons() {
-        if (shieldButton != null) shieldButton.setText(shieldLevel > 0 ? "SHIELD ✓" : "SHIELD • 50");
+        if (shieldButton != null) { shieldButton.setText(shieldLevel > 0 ? "◈ SHIELD UNLOCKED" : "◈ SHIELD  •  50"); styleButton(shieldButton, 0xFF203B59, 0xFF132940, 0xFFBCEEFF, 11); }
         if (boostButton != null) {
             int cost = boostLevel == 0 ? 100 : boostLevel == 1 ? 200 : 350;
-            boostButton.setText(boostLevel >= 3 ? "COIN BOOST MAX" : "COIN BOOST " + boostLevel + " • " + cost);
+            boostButton.setText(boostLevel >= 3 ? "✦ BOOST MAX" : "✦ BOOST " + boostLevel + "  •  " + cost);
         }
     }
 
@@ -232,15 +255,51 @@ public class MainActivity extends Activity {
         });
     }
 
+    private void toggleSound() {
+        boolean enabled = !soundscape.isEnabled();
+        soundscape.setEnabled(enabled);
+        getPreferences(MODE_PRIVATE).edit().putBoolean("soundEnabled", enabled).apply();
+        refreshSoundButton();
+        status.setText(enabled ? "Sound effects enabled. Ambient music: " + (soundscape.isMusicEnabled() ? "ON" : "OFF") : "All game audio muted.");
+    }
+
+    private void refreshSoundButton() {
+        if (soundButton != null) {
+            soundButton.setText("♪  AUDIO " + (soundscape.isEnabled() ? "ON" : "OFF")
+                    + "   •   AMBIENT MUSIC " + (soundscape.isMusicEnabled() && soundscape.isEnabled() ? "ON" : "OFF"));
+        }
+    }
+
+    private void styleButton(Button button, int topColor, int bottomColor, int textColor, int textSize) {
+        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{topColor, bottomColor});
+        bg.setCornerRadius(dp(14));
+        bg.setStroke(dp(1), 0x554DEBFF);
+        button.setBackground(bg);
+        button.setTextColor(textColor);
+        button.setTextSize(textSize);
+        button.setTypeface(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD));
+        button.setAllCaps(false);
+        button.setElevation(dp(3));
+        button.setPadding(dp(8), dp(4), dp(8), dp(4));
+    }
+
     private int dp(int value) { return (int) (value * getResources().getDisplayMetrics().density + 0.5f); }
 
     @Override protected void onPause() {
         if (game != null) game.pauseGame();
+        if (soundscape != null) soundscape.stopMusic();
         super.onPause();
+    }
+
+    @Override protected void onDestroy() {
+        if (soundscape != null) soundscape.release();
+        super.onDestroy();
     }
 
     @Override protected void onResume() {
         super.onResume();
         if (game != null) game.resumeGame();
+        if (soundscape != null && soundscape.isEnabled() && soundscape.isMusicEnabled()) soundscape.startMusic();
     }
 }
