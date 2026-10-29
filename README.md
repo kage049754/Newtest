@@ -1,61 +1,45 @@
-# Last 1% — Endless Survival
+# Last 1% — LibGDX Endless Survival
 
-**Last 1%** is a portrait neon-arcade survival game for Android. Move your energy core around a sci-fi arena, collect energy, dodge red shard hazards, and survive as long as you can. There is no fixed 45-second finish line: the run ends when a hazard hits you.
+**Last 1%** is a free, offline-first Android arcade survival game built with **LibGDX 1.13.1** and Java. Guide a glowing energy core, collect cyan energy, dodge red shards, and survive an endless stream of increasingly difficult hazards.
 
-## Current gameplay
-- Native Android Java game; the core game works offline.
-- Drag anywhere in the arena to move the energy core.
-- Endless survival run. Stage 1 begins immediately; every 60 seconds advances the stage number.
-- Hazard speed and spawn frequency increase continuously with survival time. Difficulty has practical caps to avoid making the game impossible or overwhelming low-end phones.
-- Cyan energy pickups add score. Red shard hazards end a run on contact.
-- A shield upgrade blocks one hit per run; coin-boost upgrades increase energy score.
-- Coins, best score, and upgrades save locally on the device.
-- Run-end results show total survival time, score, and earned coins.
-- Optional rewarded ad offers bonus coins after a run; no ad is shown during active gameplay.
+## Current LibGDX rebuild
 
-## Visual design
-- Dark sci-fi arena with a neon grid and border.
-- Glowing energy core and cyan collectible orbs.
-- Angular red shard hazards with glow.
-- Custom gradient action buttons and a compact arcade HUD.
+- **Engine:** LibGDX Android backend with Java 17; no paid tools, assets, or services required.
+- **Game presentation:** sci-fi arena grid, layered neon panels, glowing energy core, cyan collectibles, red shard hazards, particle bursts, score HUD, and arcade-style panels/buttons.
+- **Screens:** base menu, active gameplay, pause overlay, core upgrade shop, and run-results screen.
+- **Endless progression:** difficulty and spawn frequency increase over time; stage advances every 45 seconds. There is no fixed timer-based win screen.
+- **Controls:** drag on the playfield to steer the core; tap pause to resume or end a run.
+- **Progression:** energy pickups increase score; shield absorbs one collision per run; amplifier upgrades improve pickup score. Coins, best score, and amplifier level persist locally.
+- **Privacy/offline:** gameplay uses no account, server, or network connection. The earlier AdMob test integration is removed from this LibGDX rebuild.
+- **Assets:** all current visuals are drawn at runtime with LibGDX primitives, so the APK needs no external art downloads. Original sprite sheets, richer animation, and synthesized/recorded audio are future polish items.
 
-## Audio
-- Original ambient synth music is generated in code, so the project does not depend on copyrighted music or external audio files.
-- Short sound cues play for energy collection, shield activation, stage changes, and run-ending collisions.
-- Audio can be muted from the in-game audio control. Music pauses when the app leaves the foreground.
-- Audio is synthesized and intentionally lightweight; a future polish pass can replace or supplement it with professionally mixed original/licensed tracks and adjustable separate music/SFX volume controls.
+## Build and verify
 
-## Progression and upgrades
-- **Shield:** 50 coins; blocks one hit each run.
-- **Coin boost:** levels cost 100, 200, and 350 coins; increases energy-orb score.
-- **Run rewards:** coins are earned based on score and survival time.
-- **Rewarded bonus:** bonus coins are granted only after the ad SDK confirms the reward callback.
+GitHub Actions runs `gradle --no-daemon assembleDebug`, verifies that the APK exists and is non-empty, prints its SHA-256, and uploads the `Last1Percent-debug-apk` artifact.
 
-## Build and download
-GitHub Actions runs `gradle --no-daemon assembleDebug`, verifies that the APK exists and is non-empty, calculates its SHA-256 hash, and uploads the `Last1Percent-debug-apk` artifact. Open **Actions**, select the latest completed successful **Android Debug APK** run, and download the artifact. CI confirms compilation and artifact creation; it does not prove physical-device installation, performance, or audio quality.
+1. Open [GitHub Actions](https://github.com/kage049754/Newtest/actions).
+2. Choose the latest **Android Debug APK** run that has completed successfully.
+3. Download the `Last1Percent-debug-apk` artifact and extract the APK.
 
-## Roadmap
-- [x] Native Android project and portrait touch controls
-- [x] Endless survival with stage progression and time-based difficulty
-- [x] Neon arena, glowing core, energy pickups, and shard hazards
-- [x] Local score/coin persistence, shield, and coin-boost upgrades
-- [x] Procedural ambient synth and gameplay sound cues
-- [x] Rewarded-only AdMob test integration (no gameplay interruptions)
-- [x] GitHub Actions build, APK verification, and artifact upload
-- [ ] Install and play-test on a physical Android phone; tune difficulty from real play sessions
-- [ ] Add pause menu, audio sliders, and more hazard patterns
-- [ ] Add original visual effects, unlockable core skins, and stage-specific arena themes
-- [ ] Add privacy/consent handling and privacy policy before public release
-- [ ] Configure real AdMob IDs only after the AdMob app/ad units are ready
-- [ ] Release signing, store listing, policy review, and closed testing
+CI verifies compilation and artifact creation, not physical-device installation, gameplay balance, or device-specific performance.
 
 ## Technology
-- Java, Android SDK, Gradle 8.9, JDK 17
-- Google Mobile Ads SDK (test IDs only)
-- GitHub Actions on Ubuntu
-- Android AudioTrack/ToneGenerator for synthesized audio
 
-## Monetization and release notes
-The repository uses Google's official AdMob test App ID and rewarded test unit ID only. Test ads do not generate revenue. Before release, configure your own AdMob app and ad units, implement privacy/consent requirements relevant to users and regions, publish a privacy policy, and follow current Google Play and AdMob policies. Never click your own live ads. Real monetization depends on AdMob approval, valid traffic, distribution, and policy compliance.
+- Java 17
+- LibGDX 1.13.1
+- Android SDK / Gradle 8.9
+- GitHub Actions
 
-This is an active prototype. A successful CI build is not a claim of device testing or production readiness.
+## Roadmap
+
+- [x] Migrate rendering and game loop to LibGDX Android backend
+- [x] Add arcade-style base, gameplay HUD, pause, shop, and results screens
+- [x] Add endless hazards, pickups, collision, particles, and time-based difficulty
+- [x] Persist coins, best score, and amplifier upgrades locally
+- [ ] Physical Android play-test and tune controls/difficulty
+- [ ] Add original sprite assets, richer enemy patterns, and animated transitions
+- [ ] Add adjustable original music and sound effects
+- [ ] Add unlockable core skins and stage-specific arenas
+- [ ] Release signing, accessibility review, and store testing
+
+This is an active prototype. Do not treat a successful CI build as proof of device testing or production readiness.
