@@ -1,43 +1,38 @@
-# AdQuest — Star Catch
+# Last 1% — Survival Challenge
 
-AdQuest is a small, offline-playable Android casual game prototype. Catch falling stars, avoid bombs, and beat your best score. The project is intentionally separate from all other game repositories.
+**Last 1%** is a fast, one-life survival arcade game for Android. Move your energy core left and right, dodge falling hazards, collect energy orbs, and survive as long as possible. Each run is short, retries are instant, and coins unlock future cosmetic and gameplay progression.
 
-## Current prototype
-- Native Android Java app (no paid engine or API required).
-- 30-second rounds, touch controls, score, coins, and local best-score saving.
-- Google Mobile Ads SDK configured with Google's **official test IDs** only.
-- Rewarded-ad button is offered after a round; reward is granted only after the SDK reports a completed reward.
-- No ad interrupts an active round. A small banner may appear on the menu/result screen.
-- GitHub Actions builds a debug APK and uploads it as an artifact.
+## Gameplay
+- Portrait, touch-controlled survival arcade.
+- One-hit run: collide with a red hazard and the run ends.
+- Collect cyan energy orbs for score and coins.
+- Survive for up to 45 seconds; the hazard spawn rate and speed increase over time.
+- Save best score and coin balance locally on the device.
+- Optional rewarded test ad after a run; no ad interrupts active gameplay.
+- Google Mobile Ads uses official test IDs only until a real AdMob setup is deliberately configured.
 
-## Build
-Push to GitHub or run **Actions → Android Debug APK → Run workflow**. Download the `AdQuest-debug-apk` artifact from a completed successful workflow run. A successful CI build verifies compilation, not installation or gameplay on a physical phone.
-
-## AdMob setup before release
-1. Create an AdMob account and register the Android app using package ID `com.kage049754.adquest`.
-2. Create a rewarded ad unit and, if desired, a banner ad unit.
-3. Replace the sample test App ID in `app/src/main/AndroidManifest.xml` and test ad unit IDs in `MainActivity.java` only when ready to test with your own app configuration.
-4. Keep test ads enabled during development. Never click your own live ads.
-5. Publish a privacy policy, complete Google's required consent/privacy flows for your audience and regions, and configure AdMob payment, identity, and tax details as Google requires.
-6. Review Google Play's current policies and complete testing before production release.
-
-The sample IDs in this repository are Google test IDs. They do not generate real earnings. AdMob approval, account setup, app distribution, eligible traffic, and policy compliance are required before monetization can pay out.
+## Build and download
+GitHub Actions runs `gradle assembleDebug`, checks that the APK exists and is non-empty, calculates its SHA-256 hash, and uploads the `Last1Percent-debug-apk` artifact. Open **Actions**, choose the latest completed successful **Android Debug APK** run, then download the artifact. CI confirms compilation and artifact creation, not real-phone gameplay.
 
 ## Roadmap
-- [x] Basic playable touch-based casual game
-- [x] Save best score locally
+- [x] Native Android prototype and touch movement
+- [x] One-hit survival, hazards, collectible orbs, escalating difficulty
+- [x] Local best-score and coin persistence
 - [x] Test-only rewarded ad integration
-- [x] GitHub Actions APK build and artifact
-- [ ] Install and test on a real Android phone
-- [ ] Add sound, accessibility settings, and improved visual polish
-- [ ] Add privacy/consent implementation appropriate to release regions
-- [ ] Replace test IDs only after AdMob app/ad units are configured
+- [x] GitHub Actions APK verification and artifact upload
+- [ ] Install and play-test on a physical Android phone
+- [ ] Add sound, haptics, pause/retry polish, and accessible settings
+- [ ] Add unlockable skins and balanced progression
+- [ ] Add region-appropriate privacy/consent flow before release
+- [ ] Configure real AdMob app/ad units only after account setup
 - [ ] Release signing, store listing, policy review, and closed testing
 
-## Tech
-- Android Java, Android SDK, Gradle
-- Google Mobile Ads SDK with test IDs
-- GitHub Actions / Ubuntu runner
+## Technology
+- Native Android Java, Android SDK, Gradle
+- Google Mobile Ads SDK (test IDs only)
+- GitHub Actions
 
-## License
-Prototype code is provided for personal learning and development. Review dependency licenses before publishing.
+## AdMob and release notes
+The app currently uses Google's sample App ID and test ad unit IDs. Test ads do not earn revenue. Before release, configure your own AdMob app and ad units, implement required privacy/consent handling, publish a privacy policy, and follow current Google Play and AdMob policies. Never click your own live ads.
+
+This is an early prototype, not a claim of a production-ready or device-tested release.
