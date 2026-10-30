@@ -256,8 +256,8 @@ fun DroidFlowApp() {
     Text("Steps (${steps.size}/20)",style=MaterialTheme.typography.labelLarge)
     steps.forEachIndexed { index, step -> Row(verticalAlignment=Alignment.CenterVertically) {
      Text("${index+1}. $step",modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
-     TextButton(onClick={steps=steps.toMutableList().also{val item=removeAt(index);add(index-1,item)}},enabled=index>0) { Text("↑") }
-     TextButton(onClick={steps=steps.toMutableList().also{val item=removeAt(index);add(index+1,item)}},enabled=index<steps.lastIndex) { Text("↓") }
+     TextButton(onClick={steps=steps.toMutableList().also{val item=it.removeAt(index);it.add(index-1,item)}},enabled=index>0) { Text("↑") }
+     TextButton(onClick={steps=steps.toMutableList().also{val item=it.removeAt(index);it.add(index+1,item)}},enabled=index<steps.lastIndex) { Text("↓") }
      TextButton(onClick={steps=steps.toMutableList().also{it.removeAt(index)}},enabled=steps.size>1) { Text("Remove") }
     } }
     Text("Choose an action to add as the next step:",style=MaterialTheme.typography.labelLarge)
