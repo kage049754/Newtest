@@ -6,6 +6,8 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -61,6 +63,28 @@ fun DroidFlowApp() {
  var action by remember { mutableStateOf(actions.first()) }
  var search by remember { mutableStateOf("") }
  var status by remember { mutableStateOf("Flows run only when you choose them.") }
+ var importedRules by remember { mutableStateOf<List<FlowRule>?>(null) }
+ var importError by remember { mutableStateOf<String?>(null) }
+ val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+  if (uri != null) {
+   try {
+    val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("Could not read the selected file.")
+    require(text.length <= 1_000_000) { "Backup file is too large." }
+    val array = JSONArray(text)
+    require(array.length() in 1..200) { "Backup must contain between 1 and 200 flows." }
+    val parsed = (0 until array.length()).map { i ->
+     val obj = array.getJSONObject(i)
+     val flowName = obj.optString("name").trim()
+     val flowAction = obj.optString("action")
+     require(flowName.isNotBlank() && flowName.length <= 60) { "A flow has an invalid name." }
+     require(flowAction in actions) { "Backup contains an unsupported action." }
+     FlowRule(System.currentTimeMillis() + i, flowName, "Manual", flowAction, obj.optBoolean("enabled", true))
+    }
+    importedRules = parsed
+    importError = null
+   } catch (e: Exception) { importError = e.message ?: "Invalid backup file." }
+  }
+ }
 
  fun saveRules(next:List<FlowRule>) {
   rules=next; val a=JSONArray()
@@ -173,6 +197,7 @@ fun DroidFlowApp() {
      else -> {
       item { Text("Settings & backup",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold) }
       item { Text("Your flows and history stay in local app storage. No account or cloud sync is used.") }
+      item { ActionCard("Import flows","Restore routines from a DroidFlow JSON backup",Icons.Default.FileDownload) { importLauncher.launch(arrayOf("application/json","text/*","application/octet-stream")) } }
       item { ActionCard("Export flows","Share a JSON backup of your routines",Icons.Default.FileUpload) {
        val data=JSONArray()
        rules.forEach { data.put(JSONObject().put("name",it.name).put("trigger",it.trigger).put("action",it.action).put("enabled",it.enabled)) }
@@ -190,6 +215,19 @@ fun DroidFlowApp() {
     }
    }
   }
+  if (importedRules != null) AlertDialog(
+   onDismissRequest = { importedRules = null },
+   title = { Text("Restore backup?") },
+   text = { Text("Replace your current ${rules.size} flows with ${importedRules!!.size} validated flows from this backup? Your activity history will remain.") },
+   confirmButton = { Button(onClick = {
+    saveRules(importedRules!!); log("Backup", "Restored ${importedRules!!.size} flows"); importedRules = null; status = "Backup restored."
+   }) { Text("Restore") } },
+   dismissButton = { TextButton(onClick = { importedRules = null }) { Text("Cancel") } }
+  )
+  if (importError != null) AlertDialog(
+   onDismissRequest = { importError = null }, title = { Text("Import failed") },
+   text = { Text(importError!!) }, confirmButton = { TextButton(onClick = { importError = null }) { Text("OK") } }
+  )
   if(editor) AlertDialog(onDismissRequest={editor=false},title={Text(if(editId==null)"Create a flow" else "Edit flow")},
    text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
     OutlinedTextField(value=name,onValueChange={name=it},label={Text("Flow name")},singleLine=true,modifier=Modifier.fillMaxWidth())
