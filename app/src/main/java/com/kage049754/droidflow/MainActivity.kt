@@ -47,8 +47,11 @@ fun DroidFlowApp() {
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("droidflow",0) }
  fun readRules(): List<FlowRule> = try {
-  val a=JSONArray(prefs.getString("rules",null) ?: return seedRules)
-  (0 until a.length()).map { a.getJSONObject(it).let { o -> FlowRule(o.getLong("id"),o.getString("name"),o.optString("trigger","Manual"),o.getString("action"),o.optBoolean("enabled",true)) } }
+  val raw = prefs.getString("rules", null)
+  if (raw.isNullOrBlank()) seedRules else {
+   val a = JSONArray(raw)
+   (0 until a.length()).map { a.getJSONObject(it).let { o -> FlowRule(o.getLong("id"),o.getString("name"),o.optString("trigger","Manual"),o.getString("action"),o.optBoolean("enabled",true)) } }
+  }
  } catch (_:Exception) { seedRules }
  fun readLogs(): List<FlowLog> = try {
   val a=JSONArray(prefs.getString("history","[]"))

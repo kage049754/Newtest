@@ -7,7 +7,7 @@ Offline-first Android routine launcher built with Kotlin, Jetpack Compose and Ma
 - Create, edit, search, enable/disable, duplicate, run and delete named flows.
 - Templates for focus, connectivity, battery, display, Bluetooth and time settings.
 - Persistent local activity history (latest 100 events).
-- Export and restore flow definitions as JSON using Android's document picker and share sheet. Imports are validated, limited to 200 flows and replace existing flow definitions only after confirmation.
+- Export flow definitions as JSON through Android's share sheet.
 - No account, cloud service, analytics, ads or paid API.
 
 ## Android behavior and privacy
@@ -20,7 +20,8 @@ Run `gradle --no-daemon assembleDebug`. APK: `app/build/outputs/apk/debug/app-de
 - [x] Offline flow storage and templates
 - [x] Edit, duplicate, search, enable/disable and delete
 - [x] Persistent activity history
-- [x] JSON export and validated restore
+- [x] JSON export
+- [ ] Validated JSON import and restore
 - [ ] Multi-step flows with supported action sequences
 - [ ] Optional user-approved scheduled reminders
 - [ ] Home-screen shortcuts/widgets
