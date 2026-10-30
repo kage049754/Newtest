@@ -1,31 +1,30 @@
 # DroidFlow
 
-DroidFlow is an offline-first Android routine and shortcut manager built with Kotlin, Jetpack Compose, and Material 3 dynamic color.
+Offline-first Android routine launcher built with Kotlin, Jetpack Compose and Material 3.
 
 ## Current features
-- Material You interface with system dynamic colors on Android 12+ and a light fallback on older versions.
-- Home dashboard and quick actions for Wi-Fi, Bluetooth, display, battery, and Android settings.
-- Create, enable, disable, run, and delete personal flows.
-- Six reusable routine templates for study, connectivity, battery, wind-down, Bluetooth, and time settings.
-- Local persistence of flow definitions; no account or server required.
-- Settings shortcuts for app permissions, notifications, battery, and system settings.
-- Explicit user-triggered actions; no hidden device control or accessibility automation.
+- Material You dynamic colors on Android 12+ and fallback palette on older devices.
+- Create, edit, search, enable/disable, duplicate, run and delete named flows.
+- Templates for focus, connectivity, battery, display, Bluetooth and time settings.
+- Persistent local activity history (latest 100 events).
+- Export flow definitions as JSON through Android's share sheet.
+- No account, cloud service, analytics, ads or paid API.
 
-## Android limitations
-DroidFlow opens relevant Android settings pages rather than silently changing protected system settings. Device version and manufacturer determine which settings pages are available. Scheduled reminders and multi-step background triggers are planned for later phases using supported Android APIs.
+## Android behavior and privacy
+Flows are user-triggered. Android protects many system controls; DroidFlow opens the relevant settings page rather than silently changing protected settings. It does not use an Accessibility Service, notification listener, or background execution to bypass restrictions. Flow definitions and history stay in app-private local storage.
 
 ## Build
-GitHub Actions builds a debug APK on every push to `main`, verifies that the APK exists and is non-empty, calculates its SHA-256, and uploads it as an artifact.
-
-Open **Actions → DroidFlow Android APK → latest successful run → Artifacts** to download the APK.
-
-Requirements: JDK 17, Gradle 8.9, Android SDK platform 35. No paid services or API keys are required.
+Run `gradle --no-daemon assembleDebug`. APK: `app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions builds and uploads a debug APK on pushes to `main`, pull requests and manual dispatch. Artifacts are retained for 14 days.
 
 ## Roadmap
-1. Core Material You dashboard, editable flows, templates, local persistence, and quick actions.
-2. Add reliable reminder scheduling, notification controls, and persistent run history.
-3. Add user-defined trigger conditions and reusable multi-step routines.
-4. Add import/export, backup/restore, and automated UI tests.
-5. Verify behavior on real Android devices and document OEM-specific limitations.
+- [x] Offline flow storage and templates
+- [x] Edit, duplicate, search, enable/disable and delete
+- [x] Persistent activity history
+- [x] JSON export
+- [ ] Validated JSON import and restore
+- [ ] Multi-step flows with supported action sequences
+- [ ] Optional user-approved scheduled reminders
+- [ ] Home-screen shortcuts/widgets
+- [ ] Automated UI and repository tests
 
-DroidFlow is a local utility, not a game. It does not use AccessibilityService to automate arbitrary third-party apps.
+Scheduled triggers and background actions will be implemented only where Android permits them and with explicit user consent.
