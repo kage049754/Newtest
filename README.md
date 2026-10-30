@@ -5,6 +5,7 @@ Offline-first Android routine launcher built with Kotlin, Jetpack Compose and Ma
 ## Current features
 - Material You dynamic colors on Android 12+ and fallback palette on older devices.
 - Create, edit, search, enable/disable, duplicate, run and delete named flows.
+- Multi-step routines with up to 20 supported actions, launched one at a time with user confirmation between steps.
 - Templates for focus, connectivity, battery, display, Bluetooth and time settings.
 - Persistent local activity history (latest 100 events).
 - Export flow definitions as JSON through Android's share sheet.
@@ -21,8 +22,8 @@ Run `gradle --no-daemon assembleDebug`. APK: `app/build/outputs/apk/debug/app-de
 - [x] Edit, duplicate, search, enable/disable and delete
 - [x] Persistent activity history
 - [x] JSON export
-- [ ] Validated JSON import and restore
-- [ ] Multi-step flows with supported action sequences
+- [x] Validated JSON import and restore (legacy single-action backups remain supported)
+- [x] Multi-step flows with supported action sequences
 - [ ] Optional user-approved scheduled reminders
 - [ ] Home-screen shortcuts/widgets
 - [ ] Automated UI and repository tests
