@@ -254,12 +254,17 @@ fun DroidFlowApp() {
    text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
     OutlinedTextField(value=name,onValueChange={name=it},label={Text("Flow name")},singleLine=true,modifier=Modifier.fillMaxWidth())
     Text("Steps (${steps.size}/20)",style=MaterialTheme.typography.labelLarge)
-    steps.forEachIndexed { index, step -> Row(verticalAlignment=Alignment.CenterVertically) { Text("${index+1}. $step",modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall); TextButton(onClick={steps=steps.toMutableList().also{it.removeAt(index)}},enabled=steps.size>1) { Text("Remove") } } }
+    steps.forEachIndexed { index, step -> Row(verticalAlignment=Alignment.CenterVertically) {
+     Text("${index+1}. $step",modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
+     TextButton(onClick={steps=steps.toMutableList().also{val item=removeAt(index);add(index-1,item)}},enabled=index>0) { Text("↑") }
+     TextButton(onClick={steps=steps.toMutableList().also{val item=removeAt(index);add(index+1,item)}},enabled=index<steps.lastIndex) { Text("↓") }
+     TextButton(onClick={steps=steps.toMutableList().also{it.removeAt(index)}},enabled=steps.size>1) { Text("Remove") }
+    } }
     Text("Choose an action to add as the next step:",style=MaterialTheme.typography.labelLarge)
     actions.forEach { a -> Row(verticalAlignment=Alignment.CenterVertically) { RadioButton(selected=action==a,onClick={action=a}); Text(a,style=MaterialTheme.typography.bodyMedium) } }
     OutlinedButton(onClick={if(steps.size<20) steps=steps+action},enabled=steps.size<20,modifier=Modifier.fillMaxWidth()) { Icon(Icons.Default.Add,null); Text("Add selected action as step") }
    } },
-   confirmButton={Button(enabled=name.isNotBlank(),onClick={
+   confirmButton={Button(enabled=name.isNotBlank() && steps.isNotEmpty() && steps.size<=20,onClick={
     val id=editId
     val chosenSteps=steps.ifEmpty { listOf(action) }
     val next=if(id==null) rules+FlowRule(System.currentTimeMillis(),name.trim(),"Manual",chosenSteps.first(),true,chosenSteps) else rules.map{if(it.id==id)it.copy(name=name.trim(),action=chosenSteps.first(),steps=chosenSteps)else it}
